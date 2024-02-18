@@ -256,6 +256,38 @@ def update_table_nodes(connection, nodes_info):
     connection.commit()
     cursor.close()
 
+def update_table_channels(connection, channels_info):
+    """Update the 'channels' table with channels from Meshtastic info."""
+    try:
+        cursor = connection.cursor()
+        for channel_type, details in channels_info.items():
+            # Assuming 'channels_info' is a dict with channel types as keys and details as values
+            psk = details.get('psk', '')
+            name = details.get('name', '')
+            uplinkEnabled = details.get('uplinkEnabled', False)
+            downlinkEnabled = details.get('downlinkEnabled', False)
+
+            # Check if channel exists
+            cursor.execute("SELECT COUNT(*) FROM channels WHERE name = %s", (name,))
+            if cursor.fetchone()[0] == 0:
+                # Insert new channel
+                cursor.execute("""
+                    INSERT INTO channels (channelType, psk, name, uplinkEnabled, downlinkEnabled)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (channel_type.upper(), psk, name, uplinkEnabled, downlinkEnabled))
+            else:
+                # Update existing channel
+                cursor.execute("""
+                    UPDATE channels
+                    SET psk = %s, uplinkEnabled = %s, downlinkEnabled = %s
+                    WHERE name = %s
+                """, (psk, uplinkEnabled, downlinkEnabled, name))
+        connection.commit()
+    except Error as e:
+        print(f"Failed to update the 'channels' table: {e}")
+    finally:
+        cursor.close()
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
