@@ -180,6 +180,27 @@ def create_table_modulePreferences(connection):
     except Error as e:
         print(f"Failed to create the 'modulePreferences' table: {e}")
 
+def create_table_channels(connection):
+    """Create the 'channels' table based on 'Channels' from meshtastic --info."""
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS channels (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nodeID VARCHAR(9),
+                channelType ENUM('PRIMARY', 'SECONDARY') NOT NULL,
+                psk VARCHAR(255),
+                name VARCHAR(255),
+                uplinkEnabled BOOLEAN DEFAULT FALSE,
+                downlinkEnabled BOOLEAN DEFAULT FALSE,
+                UNIQUE KEY unique_channel (nodeID, name)
+            )
+        """)
+        print("Table 'channels' created or already exists.")
+        cursor.close()
+    except Error as e:
+        print(f"Failed to create the 'channels' table: {e}")
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
