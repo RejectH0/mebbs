@@ -342,6 +342,19 @@ async def fetch_meshtastic_config_async():
 def onReceive(packet, interface):
     print(f"Received: {packet}")
 
+def onConnect(interface, topic=pub.AUTO_TOPIC):
+    longName = interface.getLongName
+    shortName = interface.getShortName
+    # Get current date and time
+    current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
+
+    # Format the message
+    message = f"{longName} ({shortName}): Now online {current_time}"
+
+    # Send the message
+    interface.sendText(message)
+
+
 async def init_mebbs():
     print("Loading database configuration...")
     db_config = load_db_config()
@@ -357,14 +370,6 @@ async def init_mebbs():
     owner_short = meshtastic_config.get('owner_short', '0000').strip("'")
     print(f"Owner name: {owner}")
     print(f"Owner short name: {owner_short}")
-    # Get current date and time
-    current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
-
-    # Format the message
-    message = f"{owner} ({owner_short}): Now online {current_time}"
-
-    # Send the message
-    interface.sendText(message)
 
     print("Connecting to MariaDB...")
     mariadb_connection = connect_to_mariadb(db_config)
@@ -414,7 +419,7 @@ def command():
 def main():
     print("Initializing TCP Interface to Meshtastic device...")
     pub.subscribe(onReceive, "meshtastic.receive")
-    pub.subscribe(True,"meshtastic.connection.established")
+    pub.subscribe(onConnect, "meshtastic.connection.established")
     interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
     print("Initializing MEBBS application...")
     asyncio.run(init_mebbs())
