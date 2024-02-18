@@ -347,23 +347,42 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     interface.sendText("Online!")
 
 async def init_mebbs():
+    print("Loading database configuration...")
     db_config = load_db_config()
+    
+    print("Fetching Meshtastic configuration asynchronously...")
     meshtastic_config = await fetch_meshtastic_config_async()
+    
     if not meshtastic_config:
         print("Failed to fetch Meshtastic config. Exiting.")
         return
+    
     owner_short = meshtastic_config.get('owner_short', '').strip("'")
+    print(f"Owner short name derived from Meshtastic config: {owner_short}")
+    
+    print("Connecting to MariaDB...")
     mariadb_connection = connect_to_mariadb(db_config)
+    
     if mariadb_connection:
+        print("Successfully connected to MariaDB. Checking/creating database...")
         check_mebbs_database(mariadb_connection, owner_short)
+        
+        print("Creating 'nodes' table...")
         create_table_nodes(mariadb_connection)
-        # Additional database setup...
+        
+        print("Creating 'preferences' table...")
+        create_table_preferences(mariadb_connection)
+        
+        print("Creating 'modulePreferences' table...")
+        create_table_modulePreferences(mariadb_connection)
+        
+        print("Creating 'channels' table...")
+        create_table_channels(mariadb_connection)
+        
+        print("Closing MariaDB connection.")
         mariadb_connection.close()
     else:
-        print("Error in init_mebbs()")
-
-def main():
-    asyncio.run(init_mebbs())
+        print("Error in init_mebbs(): Failed to connect to MariaDB.")
 
 @app.route('/meshtastic/info', methods=['GET'])
 def meshtastic_info():
@@ -378,6 +397,12 @@ def command():
     # Placeholder for command processing logic
     return jsonify({"status": "received", "data": data})
 
+def main():
+    print("Initializing MEBBS application...")
+    asyncio.run(init_mebbs())
+    print("MEBBS application initialized successfully.")
+
 if __name__ == '__main__':
+    print("Starting Flask app...")
     main()
     app.run(debug=True, port=8080)
