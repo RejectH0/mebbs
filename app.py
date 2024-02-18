@@ -281,19 +281,37 @@ def command():
     # Placeholder for command processing logic
     return jsonify({"status": "received", "data": data})
 
-if __name__ == '__main__':
-    # Fetch and cache Meshtastic information at startup
-    meshtastic_info_cache = get_meshtastic_info()
-    
-    # Your existing database connection logic can go here
+def main():
     db_config = load_db_config()
-    mariadb_connection = connect_to_mariadb(db_config)
-    if mariadb_connection:
-        print("Successfully connected to MariaDB")
-        databases = check_mebbs_databases(mariadb_connection)
-        print(f"Found 'mebbs-*' databases: {databases}")
-        mariadb_connection.close()
-    else:
-        print("Failed to connect to MariaDB")
-    
+    mariadb_connection = None
+
+    async def init_app():
+        global mariadb_connection
+        # Asynchronously fetch Meshtastic information
+        meshtastic_info_cache = await get_meshtastic_info_async()
+        if not meshtastic_info_cache:
+            print("Failed to fetch Meshtastic info. Exiting.")
+            return
+
+        # Proceed with database operations
+        mariadb_connection = connect_to_mariadb(db_config)
+        if mariadb_connection:
+            print("Successfully connected to MariaDB")
+            check_mebbs_database(mariadb_connection, "your_shortName_here")  # Ensure you pass the correct shortName
+            # Create tables
+            create_table_nodes(mariadb_connection)
+            create_table_preferences(mariadb_connection)
+            create_table_modulePreferences(mariadb_connection)
+            create_table_channels(mariadb_connection)
+            # Update tables with Meshtastic info
+            update_table_nodes(mariadb_connection, meshtastic_info_cache.get('nodes', {}))
+            mariadb_connection.close()
+        else:
+            print("Failed to connect to MariaDB")
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(init_app())
+
+if __name__ == '__main__':
+    main()
     app.run(debug=True, port=8080)
