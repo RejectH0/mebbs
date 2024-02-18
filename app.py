@@ -131,6 +131,28 @@ def create_table_nodes(connection):
     except Error as e:
         print(f"Failed to create the 'nodes' table: {e}")
 
+def create_table_preferences(connection):
+    """Create the 'preferences' table with the structure based on 'Preferences' from meshtastic --info."""
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS preferences (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nodeID VARCHAR(9) UNIQUE,
+                device JSON,
+                position JSON,
+                power JSON,
+                network JSON,
+                display JSON,
+                lora JSON,
+                bluetooth JSON
+            )
+        """)
+        print("Table 'preferences' created or already exists.")
+        cursor.close()
+    except Error as e:
+        print(f"Failed to create the 'preferences' table: {e}")
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
