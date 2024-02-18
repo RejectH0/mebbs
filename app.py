@@ -39,7 +39,7 @@ def connect_to_mariadb(db_config):
         print(f"Error connecting to MariaDB Platform: {e}")
         return None
 
-def check_mebbs_databases(connection, shortName):
+def check_mebbs_database(connection, shortName):
     """Check and initialize the 'mebbs_{shortName}' database."""
     try:
         cursor = connection.cursor()
