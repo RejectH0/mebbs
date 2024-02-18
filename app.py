@@ -7,6 +7,7 @@ import mysql.connector
 import subprocess
 import re
 import asyncio
+import yaml
 from mysql.connector import Error
 from meshtastic import StreamInterface
 
@@ -297,8 +298,62 @@ def listen_to_meshtastic():
     """Listen for messages from the Meshtastic network."""
     interface.addPacketListener(handle_message)
 
+async def fetch_meshtastic_config_async():
+    """Fetches Meshtastic configuration asynchronously and parses its YAML output."""
+    try:
+        process = await asyncio.create_subprocess_shell(
+            'meshtastic --export-config',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await process.communicate()
+
+        output = stdout.decode()
+
+        if "Exception" in output:
+            print("Error fetching Meshtastic config.")
+            return {}
+
+        # Parse YAML output
+        config = yaml.safe_load(output)
+        return config
+    except Exception as e:
+        print(f"Error fetching Meshtastic config asynchronously: {e}")
+        return {}
+
 # Start listening to Meshtastic in a background thread
 threading.Thread(target=listen_to_meshtastic, daemon=True).start()
+
+def main():
+    db_config = load_db_config()
+    mariadb_connection = None
+
+    async def init_app():
+        global mariadb_connection
+        # Fetch Meshtastic configuration asynchronously
+        meshtastic_config = await fetch_meshtastic_config_async()
+        if not meshtastic_config:
+            print("Failed to fetch Meshtastic config. Exiting.")
+            return
+
+        owner_short = meshtastic_config.get('owner_short', '').strip("'")
+
+        # Proceed with database operations using owner_short as shortName
+        mariadb_connection = connect_to_mariadb(db_config)
+        if mariadb_connection:
+            print("Successfully connected to MariaDB")
+            check_mebbs_database(mariadb_connection, owner_short)
+            # Create and update tables as before
+            create_table_nodes(mariadb_connection)
+            create_table_preferences(mariadb_connection)
+            create_table_modulePreferences(mariadb_connection)
+            create_table_channels(mariadb_connection)
+            # Assume update functions are defined to use the fetched config
+            mariadb_connection.close()
+        else:
+            print("Failed to connect to MariaDB")
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(init_app())
 
 @app.route('/meshtastic/info', methods=['GET'])
 def meshtastic_info():
@@ -312,37 +367,6 @@ def command():
     data = request.json
     # Placeholder for command processing logic
     return jsonify({"status": "received", "data": data})
-
-def main():
-    db_config = load_db_config()
-    mariadb_connection = None
-
-    async def init_app():
-        global mariadb_connection
-        # Asynchronously fetch Meshtastic information
-        meshtastic_info_cache = await get_meshtastic_info_async()
-        if not meshtastic_info_cache:
-            print("Failed to fetch Meshtastic info. Exiting.")
-            return
-
-        # Proceed with database operations
-        mariadb_connection = connect_to_mariadb(db_config)
-        if mariadb_connection:
-            print("Successfully connected to MariaDB")
-            check_mebbs_database(mariadb_connection, "your_shortName_here")  # Ensure you pass the correct shortName
-            # Create tables
-            create_table_nodes(mariadb_connection)
-            create_table_preferences(mariadb_connection)
-            create_table_modulePreferences(mariadb_connection)
-            create_table_channels(mariadb_connection)
-            # Update tables with Meshtastic info
-            update_table_nodes(mariadb_connection, meshtastic_info_cache.get('nodes', {}))
-            mariadb_connection.close()
-        else:
-            print("Failed to connect to MariaDB")
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(init_app())
 
 if __name__ == '__main__':
     main()
