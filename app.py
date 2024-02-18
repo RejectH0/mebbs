@@ -414,7 +414,7 @@ def command():
 def main():
     print("Initializing TCP Interface to Meshtastic device...")
     pub.subscribe(onReceive, "meshtastic.receive")
-    pub.subscribe(true,"meshtastic.connection.established")
+    pub.subscribe(True,"meshtastic.connection.established")
     interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
     print("Initializing MEBBS application...")
     asyncio.run(init_mebbs())
