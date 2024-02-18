@@ -2,7 +2,6 @@
 # mebbs - v0.1 - 20240218-0320
 # Gregg RejectH0 Projects
 from flask import Flask, request, jsonify
-import time
 import threading
 import json
 import mysql.connector
@@ -14,6 +13,7 @@ import meshtastic
 import meshtastic.tcp_interface
 from pubsub import pub
 from mysql.connector import Error
+from datetime import datetime
 
 app = Flask(__name__)
 meshtastic_info_cache = {}
@@ -343,8 +343,19 @@ def onReceive(packet, interface):
     print(f"Received: {packet}")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
-    
-    interface.sendText("Online!")
+    # Assuming you have a way to fetch the longName and shortName from the interface or its configuration
+    # For demonstration, let's use placeholders. You'll need to replace these with actual fetching logic
+    longName = "DeviceLongName"  # Placeholder, replace with actual logic to fetch longName
+    shortName = "ShortName"  # Placeholder, replace with actual logic to fetch shortName
+
+    # Get current date and time
+    current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
+
+    # Format the message
+    message = f"{longName} ({shortName}): Now online {current_time}"
+
+    # Send the message
+    interface.sendText(message)
 
 async def init_mebbs():
     print("Loading database configuration...")
