@@ -412,6 +412,8 @@ def command():
     return jsonify({"status": "received", "data": data})
 
 def main():
+    print("Initializing TCP Interface to Meshtastic device...")
+    interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
     print("Initializing MEBBS application...")
     asyncio.run(init_mebbs())
     print("MEBBS application initialized successfully.")
