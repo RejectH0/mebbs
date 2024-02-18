@@ -10,7 +10,8 @@ import re
 import asyncio
 import yaml
 import meshtastic
-import meshtastic.serial_interface
+import meshtastic.tcp)interface.
+from pubsub import pub
 from mysql.connector import Error
 
 app = Flask(__name__)
@@ -19,8 +20,8 @@ meshtastic_info_cache = {}
 # Placeholder for session management
 sessions = {}
 
-# Initialize Meshtastic interface
-interface = meshtastic.serial_interface.SerialInterface()
+# Initialize Meshtastic Serial interface
+# interface = meshtastic.serial_interface.SerialInterface()
 
 def load_db_config():
     """Load database configuration from a local file."""
@@ -329,7 +330,13 @@ async def fetch_meshtastic_config_async():
         return {}
 
 # Start listening to Meshtastic in a background thread
-threading.Thread(target=listen_to_meshtastic, daemon=True).start()
+#threading.Thread(target=listen_to_meshtastic, daemon=True).start()
+
+def onReceive(packet, interface):
+    print(f"Received: {packet}")
+
+def onConnection(interface, topic=pub.AUTO_TOPIC):
+    interface.sendText("Online!")
 
 def main():
     db_config = load_db_config()
@@ -363,9 +370,13 @@ def main():
 #    loop = asyncio.get_event_loop()
 #    loop.run_until_complete(init_app())
 
+    pub.subscribe(onReceive, "meshtastic.receive")
+    pub.subscribe(onConnection, "meshtastic.connection.established")
+    interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
+
     ourNode = interface.getNode('^local')
     print(f'Our node preferences:{ourNode.localConfig}')
-
+    
 
 @app.route('/meshtastic/info', methods=['GET'])
 def meshtastic_info():
