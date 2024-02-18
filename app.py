@@ -10,7 +10,7 @@ import re
 import asyncio
 import yaml
 import meshtastic
-import meshtastic.tcp)interface.
+import meshtastic.tcp_interface
 from pubsub import pub
 from mysql.connector import Error
 
