@@ -340,9 +340,28 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     
     interface.sendText("Online!")
 
-def main():
+async def init_mebbs():
     db_config = load_db_config()
-    mariadb_connection = None
+    meshtastic_config = await fetch_meshtastic_config_async()
+    if not meshtastic_config:
+        print("Failed to fetch Meshtastic config. Exiting.")
+        return
+    owner_short = meshtastic_config.get('owner_short', '').strip("'")
+    mariadb_connection = connect_to_mariadb(db_config)
+    if mariadb_connection:
+        check_mebbs_database(mariadb_connection, owner_short)
+        create_table_nodes(mariadb_connection)
+        # Additional database setup...
+        mariadb_connection.close()
+    else:
+        print("Error in init_mebbs()")
+
+
+
+def main():
+    asyncio.run(init_mebbs())
+#    db_config = load_db_config()
+#    mariadb_connection = None
 
 #    async def init_app():
 #        global mariadb_connection
@@ -372,12 +391,12 @@ def main():
 #    loop = asyncio.get_event_loop()
 #    loop.run_until_complete(init_app())
 
-    pub.subscribe(onReceive, "meshtastic.receive")
-    pub.subscribe(onConnection, "meshtastic.connection.established")
-    interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
+#    pub.subscribe(onReceive, "meshtastic.receive")
+#    pub.subscribe(onConnection, "meshtastic.connection.established")
+#    interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
 
-    ourNode = interface.getNode('^local')
-    print(f'Our node preferences:{ourNode.localConfig}')
+#    ourNode = interface.getNode('^local')
+#    print(f'Our node preferences:{ourNode.localConfig}')
     
 
 @app.route('/meshtastic/info', methods=['GET'])
