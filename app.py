@@ -1,4 +1,5 @@
-# mebbs - v0.1 - 20240218-0111
+#!./bin/python3
+# mebbs - v0.1 - 20240218-0200
 # Gregg RejectH0 Projects
 from flask import Flask, request, jsonify
 import threading
@@ -292,12 +293,18 @@ def update_table_channels(connection, channels_info):
 
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
-    # Extract message and sender details
-    # Placeholder for message handling logic
+    # Extract message and sender details from the packet
+    message = packet.get('decoded').get('text')
+    sender = packet.get('from').get('callsign')
+
+    # Determine message type and take appropriate action
+    if message:
+        # Process text message
+        print(f"Received message from {sender}: {message}")
 
 def listen_to_meshtastic():
     """Listen for messages from the Meshtastic network."""
-    interface.addPacketListener(handle_message)
+    interface.on_receive(handle_message)
 
 async def fetch_meshtastic_config_async():
     """Fetches Meshtastic configuration asynchronously and parses its YAML output."""
@@ -328,33 +335,37 @@ def main():
     db_config = load_db_config()
     mariadb_connection = None
 
-    async def init_app():
-        global mariadb_connection
-        # Fetch Meshtastic configuration asynchronously
-        meshtastic_config = await fetch_meshtastic_config_async()
-        if not meshtastic_config:
-            print("Failed to fetch Meshtastic config. Exiting.")
-            return
+#    async def init_app():
+#        global mariadb_connection
+#        # Fetch Meshtastic configuration asynchronously
+#        meshtastic_config = await fetch_meshtastic_config_async()
+#        if not meshtastic_config:
+#            print("Failed to fetch Meshtastic config. Exiting.")
+#            return
+#
+#        owner_short = meshtastic_config.get('owner_short', '').strip("'")
+#
+#        # Proceed with database operations using owner_short as shortName
+#        mariadb_connection = connect_to_mariadb(db_config)
+#        if mariadb_connection:
+#            print("Successfully connected to MariaDB")
+#            check_mebbs_database(mariadb_connection, owner_short)
+#            # Create and update tables as before
+#            create_table_nodes(mariadb_connection)
+#            create_table_preferences(mariadb_connection)
+#            create_table_modulePreferences(mariadb_connection)
+#            create_table_channels(mariadb_connection)
+#            # Assume update functions are defined to use the fetched config
+#            mariadb_connection.close()
+#        else:
+#            print("Failed to connect to MariaDB")
+#
+#    loop = asyncio.get_event_loop()
+#    loop.run_until_complete(init_app())
 
-        owner_short = meshtastic_config.get('owner_short', '').strip("'")
+    ourNode = interface.getNode('^local')
+    print(f'Our node preferences:{ourNode.localConfig}')
 
-        # Proceed with database operations using owner_short as shortName
-        mariadb_connection = connect_to_mariadb(db_config)
-        if mariadb_connection:
-            print("Successfully connected to MariaDB")
-            check_mebbs_database(mariadb_connection, owner_short)
-            # Create and update tables as before
-            create_table_nodes(mariadb_connection)
-            create_table_preferences(mariadb_connection)
-            create_table_modulePreferences(mariadb_connection)
-            create_table_channels(mariadb_connection)
-            # Assume update functions are defined to use the fetched config
-            mariadb_connection.close()
-        else:
-            print("Failed to connect to MariaDB")
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(init_app())
 
 @app.route('/meshtastic/info', methods=['GET'])
 def meshtastic_info():
