@@ -1,3 +1,5 @@
+# mebbs - v0.1 - 20240217-2337
+# Gregg RejectH0 Projects
 from flask import Flask, request, jsonify
 import threading
 import json
@@ -39,10 +41,11 @@ def check_mebbs_databases(connection, shortName):
     """Check and initialize the 'mebbs_{shortName}' database."""
     try:
         cursor = connection.cursor()
-        cursor.execute("SHOW DATABASES LIKE 'mebbs_%s'" % shortName)
+        # Use the LIKE operator with the correct pattern for matching database names
+        cursor.execute("SHOW DATABASES LIKE 'mebbs\\_%s'" % shortName)
         databases = cursor.fetchall()
         if len(databases) == 0:
-            # If database does not exist, create it
+            # If database does not exist, create it with underscores
             cursor.execute(f"CREATE DATABASE `mebbs_{shortName}`")
             print(f"Database 'mebbs_{shortName}' created.")
         else:
