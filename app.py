@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify
 import threading
 import json
 import mysql.connector
+import subprocess
 from mysql.connector import Error
 from meshtastic import StreamInterface
 
 app = Flask(__name__)
+meshtastic_info_cache = {}
 
 # Placeholder for session management
 sessions = {}
@@ -33,16 +35,64 @@ def connect_to_mariadb(db_config):
         print(f"Error connecting to MariaDB Platform: {e}")
         return None
 
-def check_mebbs_databases(connection):
-    """Check for the existence of databases matching the pattern 'mebbs-*'."""
+def check_mebbs_databases(connection, shortName):
+    """Check and initialize the 'mebbs_{shortName}' database."""
     try:
         cursor = connection.cursor()
-        cursor.execute("SHOW DATABASES")
-        databases = [db[0] for db in cursor.fetchall() if db[0].startswith('mebbs-')]
-        return databases
+        cursor.execute("SHOW DATABASES LIKE 'mebbs_%s'" % shortName)
+        databases = cursor.fetchall()
+        if len(databases) == 0:
+            # If database does not exist, create it
+            cursor.execute(f"CREATE DATABASE `mebbs_{shortName}`")
+            print(f"Database 'mebbs_{shortName}' created.")
+        else:
+            print(f"Database 'mebbs_{shortName}' already exists.")
+        cursor.close()
     except Error as e:
-        print(f"Failed to retrieve databases: {e}")
-        return []
+        print(f"Failed to check or create database: {e}")
+
+def get_meshtastic_info():
+    """Executes 'meshtastic --info' command and parses its JSON output."""
+    try:
+        # Execute the meshtastic command and capture its JSON output
+        result = subprocess.run(['meshtastic', '--info', '--json'], capture_output=True, text=True, check=True)
+        # Parse the JSON output
+        info = json.loads(result.stdout)
+
+        # Extracting the required information
+        myNodeNum = info['myNodeNum']
+        firmwareVersion = info.get('firmwareVersion', '')
+        role = info.get('role', '')
+        hwModel = info.get('hwModel', '')
+
+        # Find the node in 'Nodes in mesh' that matches 'myNodeNum'
+        nodes_in_mesh = info.get('nodes', {})
+        myNode = nodes_in_mesh.get(str(myNodeNum), {})
+        user = myNode.get('user', {})
+        longName = user.get('longName', '')
+        shortName = user.get('shortName', '')
+        batteryLevel = myNode.get('deviceMetrics', {}).get('batteryLevel', 0)
+        voltage = myNode.get('deviceMetrics', {}).get('voltage', 0)
+
+        # Collecting channels information
+        channels = info.get('channels', [])
+        channel_names = [channel.get('name', '') for channel in channels]
+
+        # Return the collected information
+        return {
+            "myNodeNum": myNodeNum,
+            "firmwareVersion": firmwareVersion,
+            "role": role,
+            "hwModel": hwModel,
+            "longName": longName,
+            "shortName": shortName,
+            "batteryLevel": batteryLevel,
+            "voltage": voltage,
+            "channels": channel_names
+        }
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing meshtastic command: {e}")
+        return {}
 
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
@@ -56,6 +106,12 @@ def listen_to_meshtastic():
 # Start listening to Meshtastic in a background thread
 threading.Thread(target=listen_to_meshtastic, daemon=True).start()
 
+@app.route('/meshtastic/info', methods=['GET'])
+def meshtastic_info():
+    """Endpoint to display Meshtastic device info."""
+    info = get_meshtastic_info()
+    return jsonify(info)
+
 @app.route('/command', methods=['POST'])
 def command():
     """Endpoint to simulate receiving commands from the Meshtastic network."""
@@ -64,6 +120,10 @@ def command():
     return jsonify({"status": "received", "data": data})
 
 if __name__ == '__main__':
+    # Fetch and cache Meshtastic information at startup
+    meshtastic_info_cache = get_meshtastic_info()
+    
+    # Your existing database connection logic can go here
     db_config = load_db_config()
     mariadb_connection = connect_to_mariadb(db_config)
     if mariadb_connection:
@@ -73,4 +133,5 @@ if __name__ == '__main__':
         mariadb_connection.close()
     else:
         print("Failed to connect to MariaDB")
-    app.run(debug=True)
+    
+    app.run(debug=True, port=8080)
