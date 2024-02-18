@@ -153,6 +153,33 @@ def create_table_preferences(connection):
     except Error as e:
         print(f"Failed to create the 'preferences' table: {e}")
 
+def create_table_modulePreferences(connection):
+    """Create the 'modulePreferences' table based on 'Module preferences' from meshtastic --info."""
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS modulePreferences (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nodeID VARCHAR(9) UNIQUE,
+                mqtt JSON,
+                serial JSON,
+                externalNotification JSON,
+                rangeTest JSON,
+                telemetry JSON,
+                cannedMessage JSON,
+                audio JSON,
+                remoteHardware JSON,
+                neighborInfo JSON,
+                ambientLighting JSON,
+                detectionSensor JSON,
+                paxcounter JSON
+            )
+        """)
+        print("Table 'modulePreferences' created or already exists.")
+        cursor.close()
+    except Error as e:
+        print(f"Failed to create the 'modulePreferences' table: {e}")
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
