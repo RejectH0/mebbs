@@ -45,21 +45,27 @@ def connect_to_mariadb(db_config):
         return None
 
 def check_mebbs_database(connection, shortName):
-    """Check and initialize the 'mebbs_{shortName}' database."""
+    """Check and initialize the 'mebbs_{shortName}' database, adjusting for dynamic shortName values."""
     try:
         cursor = connection.cursor()
-        # Use the LIKE operator with the correct pattern for matching database names
-        cursor.execute("SHOW DATABASES LIKE 'mebbs\\_%s'" % shortName)
-        databases = cursor.fetchall()
-        if len(databases) == 0:
-            # If database does not exist, create it with underscores
-            cursor.execute(f"CREATE DATABASE `mebbs_{shortName}`")
-            print(f"Database 'mebbs_{shortName}' created.")
+        dbName = f"mebbs_{shortName}"
+        # Directly check for the specific database name
+        cursor.execute(f"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s", (dbName,))
+        if cursor.fetchone() is None:
+            # If database does not exist, create it
+            cursor.execute(f"CREATE DATABASE `{dbName}`")
+            feedback = f"Database '{dbName}' created."
         else:
-            print(f"Database 'mebbs_{shortName}' already exists.")
+            feedback = f"Database '{dbName}' already exists."
+        
+        # Select the database for use
+        connection.database = dbName
+        feedback += f" Using database '{dbName}'."
+        
+        print(feedback)  # Print server feedback
         cursor.close()
     except Error as e:
-        print(f"Failed to check or create database: {e}")
+        print(f"Failed to check or create and select database: {e}")
 
 async def get_meshtastic_info_async():
     """Executes 'meshtastic --info' command asynchronously and parses its output."""
