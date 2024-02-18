@@ -342,18 +342,6 @@ async def fetch_meshtastic_config_async():
 def onReceive(packet, interface):
     print(f"Received: {packet}")
 
-def onConnection(interface, topic=pub.AUTO_TOPIC):
-    longName = meshtastic_info_cache.get('longName', 'UnknownDeviceLongName')
-    shortName = meshtastic_info_cache.get('shortName', 'UnknownShortName')
-    # Get current date and time
-    current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
-
-    # Format the message
-    message = f"{longName} ({shortName}): Now online {current_time}"
-
-    # Send the message
-    interface.sendText(message)
-
 async def init_mebbs():
     print("Loading database configuration...")
     db_config = load_db_config()
@@ -365,9 +353,19 @@ async def init_mebbs():
         print("Failed to fetch Meshtastic config. Exiting.")
         return
     
-    owner_short = meshtastic_config.get('owner_short', '').strip("'")
-    print(f"Owner short name derived from Meshtastic config: {owner_short}")
-    
+    owner = meshtastic_config.get('owner', 'n0own3r').strip("'")
+    owner_short = meshtastic_config.get('owner_short', '0000').strip("'")
+    print(f"Owner name: {owner}")
+    print(f"Owner short name: {owner_short}")
+    # Get current date and time
+    current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
+
+    # Format the message
+    message = f"{owner} ({owner_short}): Now online {current_time}"
+
+    # Send the message
+    interface.sendText(message)
+
     print("Connecting to MariaDB...")
     mariadb_connection = connect_to_mariadb(db_config)
     
@@ -386,7 +384,15 @@ async def init_mebbs():
         
         print("Creating 'channels' table...")
         create_table_channels(mariadb_connection)
-        
+
+        # Update nodes table
+        print("Updating 'nodes' table with current Meshtastic nodes...")
+        update_table_nodes(mariadb_connection, meshtastic_config['nodes'])
+
+        # Update channels table
+        print("Updating 'channels' table with current Meshtastic channels...")
+        update_table_channels(mariadb_connection, meshtastic_config['channels'])
+
         print("Closing MariaDB connection.")
         mariadb_connection.close()
     else:
