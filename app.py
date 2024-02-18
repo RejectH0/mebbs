@@ -362,48 +362,8 @@ async def init_mebbs():
     else:
         print("Error in init_mebbs()")
 
-
-
 def main():
     asyncio.run(init_mebbs())
-#    db_config = load_db_config()
-#    mariadb_connection = None
-
-#    async def init_app():
-#        global mariadb_connection
-#        # Fetch Meshtastic configuration asynchronously
-#        meshtastic_config = await fetch_meshtastic_config_async()
-#        if not meshtastic_config:
-#            print("Failed to fetch Meshtastic config. Exiting.")
-#            return
-#
-#        owner_short = meshtastic_config.get('owner_short', '').strip("'")
-#
-#        # Proceed with database operations using owner_short as shortName
-#        mariadb_connection = connect_to_mariadb(db_config)
-#        if mariadb_connection:
-#            print("Successfully connected to MariaDB")
-#            check_mebbs_database(mariadb_connection, owner_short)
-#            # Create and update tables as before
-#            create_table_nodes(mariadb_connection)
-#            create_table_preferences(mariadb_connection)
-#            create_table_modulePreferences(mariadb_connection)
-#            create_table_channels(mariadb_connection)
-#            # Assume update functions are defined to use the fetched config
-#            mariadb_connection.close()
-#        else:
-#            print("Failed to connect to MariaDB")
-#
-#    loop = asyncio.get_event_loop()
-#    loop.run_until_complete(init_app())
-
-#    pub.subscribe(onReceive, "meshtastic.receive")
-#    pub.subscribe(onConnection, "meshtastic.connection.established")
-#    interface = meshtastic.tcp_interface.TCPInterface(hostname='10.69.69.215')
-
-#    ourNode = interface.getNode('^local')
-#    print(f'Our node preferences:{ourNode.localConfig}')
-    
 
 @app.route('/meshtastic/info', methods=['GET'])
 def meshtastic_info():
