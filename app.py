@@ -349,7 +349,7 @@ def onConnect(interface, topic=pub.AUTO_TOPIC):
     current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
 
     # Format the message
-    message = f"{longName} ({shortName}): Now online {current_time}"
+    message = f"{longName} ({shortName}): Now online"
 
     # Send the message
     interface.sendText(message)
@@ -359,17 +359,17 @@ async def init_mebbs():
     print("Loading database configuration...")
     db_config = load_db_config()
     
-    print("Fetching Meshtastic configuration asynchronously...")
-    meshtastic_config = await fetch_meshtastic_config_async()
+#    print("Fetching Meshtastic configuration asynchronously...")
+#    meshtastic_config = await fetch_meshtastic_config_async()
+#    
+#    if not meshtastic_config:
+#        print("Failed to fetch Meshtastic config. Exiting.")
+#        return
     
-    if not meshtastic_config:
-        print("Failed to fetch Meshtastic config. Exiting.")
-        return
-    
-    owner = meshtastic_config.get('owner', 'n0own3r').strip("'")
-    owner_short = meshtastic_config.get('owner_short', '0000').strip("'")
-    print(f"Owner name: {owner}")
-    print(f"Owner short name: {owner_short}")
+#    owner = meshtastic_config.get('owner', 'n0own3r').strip("'")
+#    owner_short = meshtastic_config.get('owner_short', '0000').strip("'")
+#    print(f"Owner name: {owner}")
+#    print(f"Owner short name: {owner_short}")
 
     print("Connecting to MariaDB...")
     mariadb_connection = connect_to_mariadb(db_config)
