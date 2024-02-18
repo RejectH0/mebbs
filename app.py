@@ -8,8 +8,9 @@ import subprocess
 import re
 import asyncio
 import yaml
+import meshtastic
+import meshtastic.serial_interface
 from mysql.connector import Error
-from meshtastic import StreamInterface
 
 app = Flask(__name__)
 meshtastic_info_cache = {}
@@ -18,7 +19,7 @@ meshtastic_info_cache = {}
 sessions = {}
 
 # Initialize Meshtastic interface
-interface = StreamInterface()
+interface = meshtastic.serial_interface.SerialInterface()
 
 def load_db_config():
     """Load database configuration from a local file."""
