@@ -201,6 +201,41 @@ def create_table_channels(connection):
     except Error as e:
         print(f"Failed to create the 'channels' table: {e}")
 
+def update_table_nodes(connection, nodes_info):
+    cursor = connection.cursor()
+    for nodeID, nodeDetails in nodes_info.items():
+        # Extracting node details
+        num = nodeDetails['num']
+        longName = nodeDetails['user']['longName']
+        shortName = nodeDetails['user']['shortName']
+        macaddr = nodeDetails['user']['macaddr']
+        hwModel = nodeDetails['user']['hwModel']
+        role = nodeDetails['user'].get('role', '')  # Adjusted for optional 'role'
+        latitudeI = nodeDetails['position'].get('latitudeI', 0)
+        longitudeI = nodeDetails['position'].get('longitudeI', 0)
+        altitude = nodeDetails['position'].get('altitude', 0)
+        time = nodeDetails['position'].get('time', 0)
+        latitude = nodeDetails['position'].get('latitude', 0.0)
+        longitude = nodeDetails['position'].get('longitude', 0.0)
+        lastHeard = nodeDetails.get('lastHeard', 0)
+        batteryLevel = nodeDetails['deviceMetrics'].get('batteryLevel', 0)
+        voltage = nodeDetails['deviceMetrics'].get('voltage', 0.0)
+        airUtilTx = nodeDetails['deviceMetrics'].get('airUtilTx', 0.0)  # Assuming airUtilTx might not be present
+        channelUtilization = nodeDetails['deviceMetrics'].get('channelUtilization', 0.0)  # Assuming optional
+        snr = nodeDetails.get('snr', 0.0)  # Assuming snr might not be present
+        channel = nodeDetails.get('channel', 0)  # Assuming channel might be optional
+
+        # Check if nodeID exists
+        cursor.execute("SELECT COUNT(*) FROM nodes WHERE nodeID = %s", (nodeID,))
+        if cursor.fetchone()[0] == 0:
+            # Insert new node
+            cursor.execute("""
+                INSERT INTO nodes (nodeID, num, longName, shortName, macaddr, hwModel, role, latitudeI, longitudeI, altitude, time, latitude, longitude, lastHeard, batteryLevel, voltage, airUtilTx, channelUtilization, snr, channel)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (nodeID, num, longName, shortName, macaddr, hwModel, role, latitudeI, longitudeI, altitude, time, latitude, longitude, lastHeard, batteryLevel, voltage, airUtilTx, channelUtilization, snr, channel))
+    connection.commit()
+    cursor.close()
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
