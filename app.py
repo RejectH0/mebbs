@@ -5,6 +5,8 @@ import threading
 import json
 import mysql.connector
 import subprocess
+import re
+import asyncio
 from mysql.connector import Error
 from meshtastic import StreamInterface
 
@@ -54,48 +56,54 @@ def check_mebbs_databases(connection, shortName):
     except Error as e:
         print(f"Failed to check or create database: {e}")
 
-def get_meshtastic_info():
-    """Executes 'meshtastic --info' command and parses its JSON output."""
+async def get_meshtastic_info_async():
+    """Executes 'meshtastic --info' command asynchronously and parses its output."""
     try:
-        # Execute the meshtastic command and capture its JSON output
-        result = subprocess.run(['meshtastic', '--info', '--json'], capture_output=True, text=True, check=True)
-        # Parse the JSON output
-        info = json.loads(result.stdout)
-
-        # Extracting the required information
-        myNodeNum = info['myNodeNum']
-        firmwareVersion = info.get('firmwareVersion', '')
-        role = info.get('role', '')
-        hwModel = info.get('hwModel', '')
-
-        # Find the node in 'Nodes in mesh' that matches 'myNodeNum'
-        nodes_in_mesh = info.get('nodes', {})
-        myNode = nodes_in_mesh.get(str(myNodeNum), {})
-        user = myNode.get('user', {})
-        longName = user.get('longName', '')
-        shortName = user.get('shortName', '')
-        batteryLevel = myNode.get('deviceMetrics', {}).get('batteryLevel', 0)
-        voltage = myNode.get('deviceMetrics', {}).get('voltage', 0)
-
-        # Collecting channels information
-        channels = info.get('channels', [])
-        channel_names = [channel.get('name', '') for channel in channels]
-
-        # Return the collected information
-        return {
-            "myNodeNum": myNodeNum,
-            "firmwareVersion": firmwareVersion,
-            "role": role,
-            "hwModel": hwModel,
-            "longName": longName,
-            "shortName": shortName,
-            "batteryLevel": batteryLevel,
-            "voltage": voltage,
-            "channels": channel_names
-        }
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing meshtastic command: {e}")
+        # Asynchronously execute the meshtastic command and capture its output
+        process = await asyncio.create_subprocess_shell(
+            'meshtastic --info',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await process.communicate()
+        
+        output = stdout.decode()
+        
+        if "Exception" in output or "Connected to radio" not in output:
+            print("Error or no connection to radio detected.")
+            return {}
+        
+        return parse_meshtastic_info_output(output)
+    except Exception as e:
+        print(f"Error executing meshtastic command asynchronously: {e}")
         return {}
+
+def parse_meshtastic_info_output(output):
+    """Parses the output from 'meshtastic --info' command."""
+    info = {}
+    
+    # Check for successful connection
+    if "Connected to radio" not in output:
+        return {"error": "Failed to connect to radio"}
+    
+    # Example parsing logic for structured data extraction
+    try:
+        # Extract JSON-like structures
+        nodes_info_match = re.search(r"Nodes in mesh: (\{.*\})", output, re.DOTALL)
+        if nodes_info_match:
+            nodes_info_str = nodes_info_match.group(1)
+            info['nodes'] = json.loads(nodes_info_str)
+        
+        # Extract key-value pairs
+        owner_match = re.search(r"Owner: (.*)", output)
+        if owner_match:
+            info['owner'] = owner_match.group(1)
+        
+        # Add more parsing as needed based on the output structure
+        
+    except Exception as e:
+        print(f"Error parsing meshtastic info: {e}")
+    
+    return info
 
 def create_table_nodes(connection):
     """Create the 'nodes' table with the structure based on 'Nodes in mesh'."""
