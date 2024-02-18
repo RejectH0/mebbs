@@ -343,11 +343,8 @@ def onReceive(packet, interface):
     print(f"Received: {packet}")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
-    # Assuming you have a way to fetch the longName and shortName from the interface or its configuration
-    # For demonstration, let's use placeholders. You'll need to replace these with actual fetching logic
-    longName = "DeviceLongName"  # Placeholder, replace with actual logic to fetch longName
-    shortName = "ShortName"  # Placeholder, replace with actual logic to fetch shortName
-
+    longName = meshtastic_info_cache.get('longName', 'UnknownDeviceLongName')
+    shortName = meshtastic_info_cache.get('shortName', 'UnknownShortName')
     # Get current date and time
     current_time = datetime.now().strftime("%Y/%m/%d - %H:%M:%S")
 
