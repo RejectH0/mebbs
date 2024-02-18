@@ -80,29 +80,41 @@ async def get_meshtastic_info_async():
 def parse_meshtastic_info_output(output):
     """Parses the output from 'meshtastic --info' command."""
     info = {}
-    
+
     # Check for successful connection
     if "Connected to radio" not in output:
         return {"error": "Failed to connect to radio"}
-    
-    # Example parsing logic for structured data extraction
+
     try:
-        # Extract JSON-like structures
+        # Extract "Nodes in mesh" as JSON
         nodes_info_match = re.search(r"Nodes in mesh: (\{.*\})", output, re.DOTALL)
         if nodes_info_match:
             nodes_info_str = nodes_info_match.group(1)
             info['nodes'] = json.loads(nodes_info_str)
-        
-        # Extract key-value pairs
+
+        # Extract simple key-value pairs (example: Owner)
         owner_match = re.search(r"Owner: (.*)", output)
         if owner_match:
             info['owner'] = owner_match.group(1)
-        
-        # Add more parsing as needed based on the output structure
-        
+
+        # Extract "My info" as JSON
+        my_info_match = re.search(r"My info: (\{.*\})", output, re.DOTALL)
+        if my_info_match:
+            my_info_str = my_info_match.group(1)
+            info['myInfo'] = json.loads(my_info_str)
+
+        # Extract "Metadata" as JSON
+        metadata_match = re.search(r"Metadata: (\{.*\})", output, re.DOTALL)
+        if metadata_match:
+            metadata_str = metadata_match.group(1)
+            info['metadata'] = json.loads(metadata_str)
+
+        # Preferences and Module preferences can be extracted similarly to "My info" and "Metadata"
+        # Channels extraction would require parsing the listed channels, potentially with a loop or additional regex
+
     except Exception as e:
         print(f"Error parsing meshtastic info: {e}")
-    
+
     return info
 
 def create_table_nodes(connection):
