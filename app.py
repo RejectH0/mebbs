@@ -97,6 +97,40 @@ def get_meshtastic_info():
         print(f"Error executing meshtastic command: {e}")
         return {}
 
+def create_table_nodes(connection):
+    """Create the 'nodes' table with the structure based on 'Nodes in mesh'."""
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nodes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nodeID VARCHAR(9) UNIQUE,
+                num BIGINT,
+                longName VARCHAR(64),
+                shortName VARCHAR(4),
+                macaddr VARCHAR(17),
+                hwModel VARCHAR(64),
+                role VARCHAR(64),
+                latitudeI INT,
+                longitudeI INT,
+                altitude INT,
+                time BIGINT,
+                latitude DOUBLE,
+                longitude DOUBLE,
+                lastHeard BIGINT,
+                batteryLevel TINYINT,
+                voltage FLOAT,
+                channelUtilization FLOAT,
+                airUtilTx FLOAT,
+                snr FLOAT,
+                channel TINYINT
+            )
+        """)
+        print("Table 'nodes' created or already exists.")
+        cursor.close()
+    except Error as e:
+        print(f"Failed to create the 'nodes' table: {e}")
+
 def handle_message(packet):
     """Process incoming messages from the Meshtastic network."""
     # Extract message and sender details
